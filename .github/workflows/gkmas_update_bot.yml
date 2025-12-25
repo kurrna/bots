@@ -11,6 +11,11 @@ on:
     - cron: '0 15,18,21 * * *'
   workflow_dispatch:
 
+# 并发控制：同一时间只有一个 run 执行，新 run 触发时会取消旧 run（避免并发冲突）
+concurrency:
+  group: check-update
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
