@@ -124,18 +124,46 @@ def check_update() -> None:
         except Exception as e:
             print(f"[red]检查 {name} 时出错: {e}[/red]")
 
+    notification_file = hash_dir / "notification.txt"
+    last_update_file = hash_dir / "last_update.txt"
     if update_detected:
-        token = cfg.get("TG_TOKEN")
-        chat_id = cfg.get("TG_CHAT_ID")
         body = "\n\n".join(messages)
-        if token and chat_id:
-            ok, info = notify_telegram(token, chat_id, body)
-            if ok:
-                print("[green]已发送 Telegram 通知[/green]")
-            else:
-                print(f"[red]发送 Telegram 失败:[/red] {info}")
-        else:
-            print("[yellow]检测到更新但未配置 Telegram，详情: [/yellow]\n", body)
+        # 将要发送的通知写入文件，由 workflow 在成功提交后负责发送
+        try:
+            notification_file.write_text(body, encoding="utf-8")
+            print(f"[green]检测到更新，已写入通知文件: {notification_file}[/green]")
+            # 记录最后更新时间（仅在检测到更新时更新）
+            from datetime import datetime
+            try:
+                from zoneinfo import ZoneInfo
+                tz = ZoneInfo("Asia/Shanghai")
+                now = datetime.now(tz=tz).replace(microsecond=0)
+                now_iso = now.isoformat()
+            except Exception:
+                # Fallback to UTC with Z if zoneinfo not available
+                now_iso = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+            try:
+                last_update_file.write_text(now_iso, encoding="utf-8")
+                print(f"[green]已保存最后更新时间: {now_iso}[/green]")
+            except Exception as e:
+                print(f"[red]写入最后更新时间失败: {e}[/red]")
+        except Exception as e:
+            print(f"[red]写入通知文件失败: {e}[/red]")
+    else:
+        # 确保没有遗留的通知文件
+        if notification_file.exists():
+            try:
+                notification_file.unlink()
+            except Exception:
+                pass
+        # 打印最近一次的更新时间（若存在），但不修改它
+        if last_update_file.exists():
+            try:
+                last = last_update_file.read_text(encoding="utf-8").strip()
+                if last:
+                    print(f"最近一次更新时间: {last}")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

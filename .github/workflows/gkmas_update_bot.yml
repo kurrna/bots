@@ -48,3 +48,17 @@ jobs:
           git fetch origin ${{ github.ref_name }} --no-tags
           git rebase origin/${{ github.ref_name }} || { echo "Rebase failed; aborting"; git rebase --abort || true; exit 1; }
           git push origin HEAD:${{ github.ref_name }}
+
+      - name: Send notification if present
+        if: always()
+        run: |
+          if [ -f ".gkm_hashes/notification.txt" ]; then
+            echo "Notification file found, sending message..."
+            MESSAGE=$(cat .gkm_hashes/notification.txt)
+            python src/test_bot_send.py "$MESSAGE"
+          else
+            echo "No notification to send."
+          fi
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
