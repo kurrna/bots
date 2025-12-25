@@ -2,7 +2,13 @@ name: GKMAS Update Monitor
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    # 白天：07:00–22:59 北京时间（UTC+8）每 30 分钟
+    # 对应 UTC 小时：23, 0-14
+    - cron: '*/30 23 * * *'
+    - cron: '*/30 0-14 * * *'
+    # 夜间：23:00–06:59 北京时间 每 3 小时（23:00, 02:00, 05:00）
+    # 对应 UTC 小时：15, 18, 21
+    - cron: '0 15,18,21 * * *'
   workflow_dispatch:
 
 permissions:
@@ -31,11 +37,14 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python src/gakmas_update_bot.py
 
-      - name: Commit changes
+      - name: Commit and push hashes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           # 如果脚本把 hash 写入 .gkm_hashes 目录：
           git add .gkm_hashes/*.txt || true
-          git commit -m "Update last seen hashes [skip ci]" || exit 0
-          git push
+          git commit -m "Update last seen hashes [skip ci]" || echo "No changes to commit"
+          # 获取远端最新并尝试把其变更重放到当前提交上（rebase），若失败则中止以便人工处理
+          git fetch origin ${{ github.ref_name }} --no-tags
+          git rebase origin/${{ github.ref_name }} || { echo "Rebase failed; aborting"; git rebase --abort || true; exit 1; }
+          git push origin HEAD:${{ github.ref_name }}
