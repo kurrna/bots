@@ -71,7 +71,7 @@ def check_update():
 
     print(messages)
     if update_detected:
-        # send_tg_message(messages)
+        send_tg_message(messages)
         notification_file.write_text(messages)
         print("\n更新已检测并通知😋！")
     else:
