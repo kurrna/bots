@@ -23,7 +23,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout main and messages branches
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -36,33 +36,39 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Switch to messages branch
+        run: |
+          git fetch origin messages:messages || git checkout --orphan messages
+          git checkout messages
+
       - name: Run monitor script
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python src/gakmas_update_bot.py
 
-      - name: Commit and push hashes
+      - name: Commit and push to messages branch
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # 如果脚本把 hash 写入 .gkm_hashes 目录：
-          git add .gkm_hashes/*.txt || true
-          git commit -m "Update last seen hashes [skip ci]" || echo "No changes to commit"
-          # 获取远端最新并尝试把其变更重放到当前提交上（rebase），若失败则中止以便人工处理
-          git fetch origin ${{ github.ref_name }} --no-tags
-          git rebase origin/${{ github.ref_name }} || { echo "Rebase failed; aborting"; git rebase --abort || true; exit 1; }
-          git push origin HEAD:${{ github.ref_name }}
+          # 添加消息文件
+          git add messages/ || true
+          git commit -m "Update notification messages [skip ci]" || echo "No changes to commit"
+          # 获取远端最新
+          git fetch origin messages --no-tags
+          # 尝试 rebase 避免非 fast-forward 冲突
+          git rebase origin/messages || { echo "Rebase failed; aborting"; git rebase --abort || true; exit 1; }
+          git push origin HEAD:messages
 
-      - name: Send notification if present
+      - name: Send notification from messages branch
         if: always()
         run: |
-          if [ -f ".gkm_hashes/notification.txt" ]; then
+          if [ -f "messages/gkmas_notification.md" ]; then
             echo "Notification file found, sending message..."
-            MESSAGE=$(cat .gkm_hashes/notification.txt)
+            MESSAGE=$(cat messages/gkms_notification.md)
             python src/test_bot_send.py "$MESSAGE"
           else
-            echo "No notification to send."
+            echo "No notification file found."
           fi
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
