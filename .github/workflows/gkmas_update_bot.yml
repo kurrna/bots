@@ -4,11 +4,11 @@ on:
   schedule:
     # 白天：07:00–22:59 北京时间（UTC+8）每 30 分钟
     # 对应 UTC 小时：23, 0-14
-    - cron: '*/30 23 * * *'
-    - cron: '*/30 0-14 * * *'
+    - cron: "*/30 23 * * *"
+    - cron: "*/30 0-14 * * *"
     # 夜间：23:00–06:59 北京时间 每 3 小时（23:00, 02:00, 05:00）
     # 对应 UTC 小时：15, 18, 21
-    - cron: '0 15,18,21 * * *'
+    - cron: "0 15,18,21 * * *"
   workflow_dispatch:
 
 # 并发控制：同一时间只有一个 run 执行，新 run 触发时会取消旧 run（避免并发冲突）
@@ -23,53 +23,32 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main and messages branches
-        uses: actions/checkout@v3
+      - name: Checkout messages branch
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: "refs/heads/messages"
+          fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Switch to messages branch
         run: |
-          git fetch origin messages:messages || git checkout --orphan messages
-          git checkout messages
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run monitor script
+      - name: Run monitor script and send message
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python src/gakmas_update_bot.py
+        run: python src/gkmas_update_bot.py
 
       - name: Commit and push to messages branch
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # 添加消息文件
           git add messages/ || true
-          git commit -m "Update notification messages [skip ci]" || echo "No changes to commit"
-          # 获取远端最新
-          git fetch origin messages --no-tags
-          # 尝试 rebase 避免非 fast-forward 冲突
-          git rebase origin/messages || { echo "Rebase failed; aborting"; git rebase --abort || true; exit 1; }
-          git push origin HEAD:messages
-
-      - name: Send notification from messages branch
-        if: always()
-        run: |
-          if [ -f "messages/gkmas_notification.md" ]; then
-            echo "Notification file found, sending message..."
-            MESSAGE=$(cat messages/gkms_notification.md)
-            python src/test_bot_send.py "$MESSAGE"
-          else
-            echo "No notification file found."
-          fi
-        env:
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          git commit -m "Update notification message [skip ci]" || echo "No changes to commit"
+          git push origin messages

@@ -40,11 +40,8 @@ def send_tg_message(text):
 
 def check_update():
     update_detected = False
-<<<<<<< HEAD
-=======
     if pathlib.Path("messages").exists() is False:
         pathlib.Path("messages").mkdir()
->>>>>>> 7f01b2f (修改workflow脚本)
     notification_file = pathlib.Path("messages/gkmas_notification.md")
     messages = "*学マス* 资源更新🤯！？\n"
     beijing_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
@@ -74,7 +71,7 @@ def check_update():
 
     print(messages)
     if update_detected:
-        # send_tg_message(messages)
+        send_tg_message(messages)
         notification_file.write_text(messages)
         print("\n更新已检测并通知😋！")
     else:
