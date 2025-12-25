@@ -207,4 +207,4 @@ marimo/_lsp/
 __marimo__/
 
 # gkmas_update_bot specific ignores
-.gkm_hashes
+# .gkm_hashes
