@@ -208,3 +208,7 @@ __marimo__/
 
 # gkmas_update_bot specific ignores
 # .gkm_hashes
+
+# ide
+.idea/
+.vscode/
