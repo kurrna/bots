@@ -24,6 +24,7 @@ import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
+from zoneinfo import ZoneInfo
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
@@ -36,6 +37,7 @@ load_dotenv(ROOT / ".env")
 
 GOAL_USERNAME = os.getenv("GOAL_USERNAME", "")
 X_RSS_URL = os.getenv("X_RSS_URL", "")
+X_RSS_PARAMS = os.getenv("X_RSS_PARAMS", "")
 TG_TOKEN = os.getenv("TG_TOKEN_2", "")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID", "")
 
@@ -96,14 +98,23 @@ def content_hash(tweet: Tweet) -> str:
     return hashlib.sha256(base.encode("utf-8", errors="ignore")).hexdigest()
 
 
+def build_rss_url(base: str, params: str) -> str:
+    if not params:
+        return base
+    if "?" in base:
+        return base + "&" + params
+    return base + "?" + params
+
+
 def fetch_rss(url: str, retries: int = 3, backoff: float = 2.0) -> str:
     if not url:
         raise RuntimeError("X_RSS_URL 未配置")
+    final_url = build_rss_url(url, X_RSS_PARAMS)
     last_err = None
     headers = {"User-Agent": "Mozilla/5.0"}
     for i in range(retries):
         try:
-            resp = requests.get(url, headers=headers, timeout=20)
+            resp = requests.get(final_url, headers=headers, timeout=20)
             if resp.status_code == 200 and resp.text.strip():
                 return resp.text
             last_err = RuntimeError(f"HTTP {resp.status_code}")
@@ -130,10 +141,12 @@ def parse_rss(content: str) -> List[Tweet]:
         title = _get_text(item, "title") or ""
         desc = _get_text(item, "description") or ""
         desc = html.unescape(desc)
+        # 取更长的文本（title 有时被截断）
+        base_text = title if len(title) >= len(desc) else desc
         pub_date = _get_text(item, "pubDate")
 
         images, videos = _extract_media(desc)
-        text = _clean_text(title or desc)
+        text = _clean_text(base_text)
         is_retweet = text.startswith("RT @") or "转推" in text[:10]
 
         tweet = Tweet(
@@ -185,6 +198,12 @@ def _escape_md(text: str) -> str:
     for ch in ["_", "*", "`", "[", "]"]:
         text = text.replace(ch, f"\\{ch}")
     return text
+
+
+def format_jst_now() -> str:
+    jst = ZoneInfo("Asia/Tokyo")
+    now = datetime.now(jst)
+    return now.strftime("%Y/%m/%d %H:%M:%S JST")
 
 
 # Telegram 发送函数
@@ -282,6 +301,7 @@ def format_message(tweet: Tweet) -> str:
     lines.append(f"🔗 [查看原推]({tweet.url})")
     if tweet.timestamp:
         lines.append(f"⏰ {tweet.timestamp}")
+    lines.append(f"🕓 {format_jst_now()}")
     if tweet.videos:
         for v in tweet.videos:
             lines.append(f"🎞 {v}")
