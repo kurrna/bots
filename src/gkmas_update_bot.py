@@ -15,7 +15,7 @@ TARGETS = {
     "PC": f"{GKMAS_API_SERVER}v2/pub/a/{GKMAS_APPID}/v/{GKMAS_VERSION_PC}/list/114514"
 }
 
-TG_TOKEN = os.getenv("TG_TOKEN")
+TG_TOKEN = os.getenv("TG_TOKEN_1")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID")
 
 def fetch_json(url=TARGETS["Mobile"], pc=False) -> dict:
@@ -42,7 +42,9 @@ def check_update():
     update_detected = False
     if pathlib.Path("messages").exists() is False:
         pathlib.Path("messages").mkdir()
-    notification_file = pathlib.Path("messages/gkmas_notification.md")
+    if pathlib.Path("messages/gkmas_update").exists() is False:
+        pathlib.Path("messages/gkmas_update").mkdir()
+    notification_file = pathlib.Path("messages/gkmas_update/gkmas_notification.md")
     messages = "*学マス* 资源更新🤯！？\n"
     beijing_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
     update_time = beijing_time.strftime("%Y-%m-%d %H:%M:%S")

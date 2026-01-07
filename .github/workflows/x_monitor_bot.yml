@@ -1,0 +1,60 @@
+name: X/Twitter Monitor
+
+on:
+  schedule:
+    # 每 15 分钟检查一次（可按需调整）
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# 并发控制：避免多个 run 同时执行导致重复通知
+concurrency:
+  group: x-monitor
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Switch to messages branch
+        run: |
+          git fetch origin messages:messages 2>/dev/null || git checkout --orphan messages
+          git checkout messages
+          # 确保 src 目录存在（从 main 分支复制）
+          git checkout main -- src/ requirements.txt 2>/dev/null || true
+
+      - name: Run X monitor script
+        env:
+          GOAL_USERNAME: ${{ secrets.GOAL_USERNAME }}
+          X_RSS_URL: ${{ secrets.X_RSS_URL }}
+          TG_TOKEN_2: ${{ secrets.TG_TOKEN_2 }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python src/x_monitor_bot.py
+
+      - name: Commit and push to messages branch
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          # 添加监控数据文件
+          git add messages/x_monitor/ || true
+          git commit -m "Update X monitor data [skip ci]" || echo "No changes to commit"
+          # 获取远端最新
+          git fetch origin messages --no-tags 2>/dev/null || true
+          # 尝试 rebase
+          git rebase origin/messages 2>/dev/null || { echo "Rebase skipped"; }
+          git push origin HEAD:messages || echo "Push skipped (no changes or conflict)"
