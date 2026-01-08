@@ -101,9 +101,7 @@ def content_hash(tweet: Tweet) -> str:
 def build_rss_url(base: str, params: str) -> str:
     if not params:
         return base
-    if "?" in base:
-        return base + "&" + params
-    return base + "?" + params
+    return base + "/" + params
 
 
 def fetch_rss(url: str, retries: int = 3, backoff: float = 2.0) -> str:
