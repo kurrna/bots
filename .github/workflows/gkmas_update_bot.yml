@@ -49,7 +49,7 @@ jobs:
 
       - name: Commit and push to messages branch
         run: |
-          rm -r src/ 2>/dev/null || true
+          git rm -r --cached src/ 2>/dev/null || true
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add messages/ || true
