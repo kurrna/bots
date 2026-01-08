@@ -190,6 +190,14 @@ def _escape_md(text: str) -> str:
     return text
 
 
+def _escape_html(text: str) -> str:
+    """转义 HTML 特殊字符"""
+    text = text.replace("&", "&amp;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
+    return text
+
+
 def format_jst_now() -> str:
     jst = ZoneInfo("Asia/Tokyo")
     now = datetime.now(jst)
@@ -202,7 +210,7 @@ def send_text(msg: str) -> bool:
         print("未配置 TG_TOKEN_2 或 TG_CHAT_ID")
         return False
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-    payload = {"chat_id": TG_CHAT_ID, "text": msg, "parse_mode": "Markdown", "disable_web_page_preview": False}
+    payload = {"chat_id": TG_CHAT_ID, "text": msg, "parse_mode": "HTML", "disable_web_page_preview": False}
     try:
         r = requests.post(url, json=payload, timeout=15)
         ok = r.ok and r.json().get("ok")
@@ -218,7 +226,7 @@ def send_photo(photo_url: str, caption: str = "") -> bool:
     if not TG_TOKEN or not TG_CHAT_ID:
         return False
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
-    payload = {"chat_id": TG_CHAT_ID, "photo": photo_url, "caption": caption[:1024], "parse_mode": "Markdown"}
+    payload = {"chat_id": TG_CHAT_ID, "photo": photo_url, "caption": caption[:1024]}
     try:
         r = requests.post(url, json=payload, timeout=30)
         ok = r.ok and r.json().get("ok")
@@ -239,7 +247,6 @@ def send_media_group(imgs: List[str], caption: str = "") -> bool:
         item = {"type": "photo", "media": img}
         if i == 0 and caption:
             item["caption"] = caption[:1024]
-            item["parse_mode"] = "Markdown"
         media.append(item)
     payload = {"chat_id": TG_CHAT_ID, "media": media}
     try:
@@ -281,20 +288,19 @@ def format_message(tweet: Tweet) -> str:
     user = GOAL_USERNAME or "user"
     lines = []
     if tweet.is_retweet:
-        lines.append(f"🔁 *@{user}* 转推")
+        lines.append(f"🔁 <b>@{_escape_html(user)}</b> 转推")
     else:
-        lines.append(f"🐦 *@{user}* 发布新推文")
+        lines.append(f"🐦 <b>@{_escape_html(user)}</b> 发布新推文")
     lines.append("")
-    safe_text = _escape_md(tweet.text)
-    lines.append(safe_text)
+    lines.append(_escape_html(tweet.text))
     lines.append("")
-    lines.append(f"🔗 [查看原推]({tweet.url})")
+    lines.append(f'🔗 <a href="{tweet.url}">查看原推</a>')
     if tweet.timestamp:
-        lines.append(f"⏰ {tweet.timestamp}")
+        lines.append(f"⏰ {_escape_html(tweet.timestamp)}")
     lines.append(f"🕓 {format_jst_now()}")
     if tweet.videos:
         for v in tweet.videos:
-            lines.append(f"🎞 {v}")
+            lines.append(f'🎞 <a href="{v}">视频链接</a>')
     return "\n".join(lines)
 
 
