@@ -37,7 +37,6 @@ load_dotenv(ROOT / ".env")
 
 GOAL_USERNAME = os.getenv("GOAL_USERNAME", "")
 X_RSS_URL = os.getenv("X_RSS_URL", "")
-X_RSS_PARAMS = os.getenv("X_RSS_PARAMS", "")
 TG_TOKEN = os.getenv("TG_TOKEN_2", "")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID", "")
 
@@ -97,17 +96,10 @@ def content_hash(tweet: Tweet) -> str:
     ])
     return hashlib.sha256(base.encode("utf-8", errors="ignore")).hexdigest()
 
-
-def build_rss_url(base: str, params: str) -> str:
-    if not params:
-        return base
-    return base + "/" + params
-
-
 def fetch_rss(url: str, retries: int = 3, backoff: float = 2.0) -> str:
     if not url:
         raise RuntimeError("X_RSS_URL 未配置")
-    final_url = build_rss_url(url, X_RSS_PARAMS)
+    final_url = url
     last_err = None
     headers = {"User-Agent": "Mozilla/5.0"}
     for i in range(retries):
