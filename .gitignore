@@ -1,0 +1,7 @@
+# messages 
+.env
+.agent/
+.idea/
+src/
+requirements.txt
+__pycache__/
