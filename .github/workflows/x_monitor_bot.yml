@@ -8,7 +8,7 @@ on:
 
 # 并发控制：避免多个 run 同时执行导致重复通知
 concurrency:
-  group: x-monitor
+  group: bot
   cancel-in-progress: true
 
 permissions:
@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -36,7 +36,7 @@ jobs:
           git fetch origin messages:messages 2>/dev/null || git checkout --orphan messages
           git checkout messages
           # 确保 src 目录存在（从 main 分支复制）
-          git checkout main -- src/ requirements.txt 2>/dev/null || true
+          git checkout main -- src/x_monitor_bot.py 2>/dev/null || true
 
       - name: Run X monitor script
         env:
@@ -49,13 +49,10 @@ jobs:
 
       - name: Commit and push to messages branch
         run: |
+          rm -r src/ 2>/dev/null || true
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           # 添加监控数据文件
           git add messages/x_monitor/ || true
           git commit -m "Update X monitor data [skip ci]" || echo "No changes to commit"
-          # 获取远端最新
-          git fetch origin messages --no-tags 2>/dev/null || true
-          # 尝试 rebase
-          git rebase origin/messages 2>/dev/null || { echo "Rebase skipped"; }
           git push origin HEAD:messages || echo "Push skipped (no changes or conflict)"
