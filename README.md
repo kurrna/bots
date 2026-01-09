@@ -1,4 +1,4 @@
-> 因为推特的反爬机制，推特用户消息转发界面有概率获取 0 条推文，详情请见 [RSSHub](https://github.com/DIYgod/RSSHub) 的 [issue](https://github.com/DIYgod/RSSHub/issues/19956)
+> 因为推特的反爬机制，推特用户消息转发有概率获取 0 条推文，详情请见 [RSSHub](https://github.com/DIYgod/RSSHub) 的 [issue](https://github.com/DIYgod/RSSHub/issues/19956)
 
 # bots
 

@@ -2,8 +2,8 @@ name: X/Twitter Monitor
 
 on:
   schedule:
-    # 每 60 分钟
-    - cron: "*/120 * * * *"
+    # 每三个小时
+    - cron: "0 0,3,6,9,12,15,21 * * *"
   workflow_dispatch:
 
 # 并发控制：避免多个 run 同时执行导致重复通知
