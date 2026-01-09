@@ -214,4 +214,14 @@ __marimo__/
 .vscode/
 .agent/
 .env
+
+# main
 messages
+
+# rsshub outputs
+*.xml
+*.json
+
+# secret files
+.env
+auth_tokens.md

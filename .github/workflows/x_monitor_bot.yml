@@ -36,12 +36,13 @@ jobs:
           git fetch origin messages:messages 2>/dev/null || git checkout --orphan messages
           git checkout messages
           # 确保 src 目录存在（从 main 分支复制）
-          git checkout main -- src/x_monitor_bot.py 2>/dev/null || true
+          git checkout main -- src/x_monitor_bot.py src/x_monitor/ 2>/dev/null || true
 
       - name: Run X monitor script
         env:
           GOAL_USERNAME: ${{ secrets.GOAL_USERNAME }}
           X_RSS_URL: ${{ secrets.X_RSS_URL }}
+          X_RSS_PARAMS: ${{ secrets.X_RSS_PARAMS }}
           TG_TOKEN_2: ${{ secrets.TG_TOKEN_2 }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python src/x_monitor_bot.py
